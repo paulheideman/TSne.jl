@@ -1,8 +1,13 @@
+include("../src/TSne.jl")
+if Pkg.installed("MNIST") == nothing
+  Pkg.clone("https://github.com/johnmyleswhite/MNIST.jl")
+end
 using RDatasets
-using Gadfly 
+using Gadfly
 using TSne
+using MNIST
 
-use_iris = true
+use_iris = false
 lables = ()
 
 if use_iris
@@ -16,14 +21,13 @@ if use_iris
 	perplexity = 15
 else
 	println("Using MNIST dataset.")
-	mnist = readcsv("mnist2500_X_reformatted.txt",Float64)
-	X = mnist
-	labelf = open ("mnist2500_labels.txt")
-	labels = readlines(labelf)
-	labels = map((x)->chomp(x), labels)
+	X, labels = traindata()
+        random_idxs = map(int, shuffle(linspace(1, size(X)[2], size(X)[2])))[1:6000]
+        X = X[:, random_idxs]
+        labels = labels[random_idxs]
 	plotname = "mnist"
 	initial_dims = 50
-	iterations = 1000
+	iterations = 10000
 	perplexity = 30
 end
 
