@@ -78,7 +78,7 @@ function x2p(X, tol = 1e-5, perplexity = 30.0)
 
 	end
 	# Return final P-matrix
-	println("Mean value of sigma: " * string(mean(sqrt(1 / beta))))
+	println("Mean value of sigma: " * string(mean(sqrt(1 ./ beta))))
 	return P
 end
 
