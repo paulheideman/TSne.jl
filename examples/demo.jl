@@ -7,9 +7,9 @@ lables = ()
 
 if use_iris
 	println("Using Iris dataset.")
-	iris = data("datasets","iris")
-	X = matrix(iris[:,2:5])
-	labels = iris[:,6]
+	iris = dataset("datasets", "iris")
+	X = array(iris[:,1:4])
+	labels = iris[:,5]
 	plotname = "iris"
 	initial_dims = -1
 	iterations = 1500
