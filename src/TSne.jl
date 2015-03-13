@@ -97,6 +97,24 @@ function pca(X, no_dims = 50)
 	return Y
 end
 
+function grad(dY, Y, P, n, no_dims)
+  # Compute pairwise affinities
+  sum_Y = sum(Y.^2, 2)
+  num = 1 ./ (1 + ((-2 * (Y * Y')) .+ sum_Y)' .+ sum_Y)
+  # Setting diagonal to zero
+  num = num-diagm(diag(num))
+  Q = num / sum(num)
+  Q = max(Q, 1e-12)
+
+  # Compute gradient
+  PQ = P - Q
+
+  for i in 1:n
+    dY[i,:] = sum(repmat(PQ[:,i] .* num[:,i], 1, no_dims) .* (Y[i,:] .- Y),1)
+  end
+  Q
+end
+
 function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 30.0)
 	#Runs t-SNE on the dataset in the NxD array X to reduce its dimensionality to no_dims dimensions.
 	# Diffrent from orginal, default is to not use PCA
@@ -106,12 +124,16 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 	if(initial_dims>0)
 		X = pca(X, initial_dims)
 	end
+        # zero the mean
+        X = X .- mean(X)
+        # scale
+        X = X / std(X)
 	(n, d) = size(X);
 	initial_momentum = 0.5
 	final_momentum = 0.8
 	eta = 500
 	min_gain = 0.01
-	Y = randn(n, no_dims)
+	Y = randn(n, no_dims) .* 0.0001
 	dY = zeros(n, no_dims)
 	iY = zeros(n, no_dims)
 	gains = ones(n, no_dims)
@@ -120,26 +142,15 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 	P = x2p(X, 1e-5, perplexity);
 	P = P + P'
 	P = P / sum(P);
-	P = P * 4;						# early exaggeration
+	P = P * 12;						# early exaggeration
 	P = max(P, 1e-12);
+	
 	# Run iterations
 	for iter in 1:max_iter
-		# Compute pairwise affinities
-		sum_Y = sum(Y.^2, 2)
-		num = 1 ./ (1 + ((-2 * (Y * Y')) .+ sum_Y)' .+ sum_Y)
-		# Setting diagonal to zero
-		num = num-diagm(diag(num))
-		Q = num / sum(num)
-		Q = max(Q, 1e-12)
+                Q = grad(dY, Y, P, n, no_dims)
 
-		# Compute gradient
-		PQ = P - Q
-
-		for i in 1:n
- 			dY[i,:] = sum(repmat(PQ[:,i] .* num[:,i], 1, no_dims) .* (Y[i,:] .- Y),1)
-		end
 		# Perform the update
-		if iter <= 20
+		if iter <= 250
 			momentum = initial_momentum
 		else
 			momentum = final_momentum
@@ -159,8 +170,8 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 			println("Iteration ", (iter + 1), ": error is ", C)
 		end
 		# Stop lying about P-values
-		if iter == 100
-			P = P / 4;
+		if iter == 250
+			P = P / 12;
 		end
     	end
 	# Return solution
