@@ -23,7 +23,7 @@ else
 	println("Using MNIST dataset.")
 	X, labels = traindata()
         random_idxs = map(int, shuffle(linspace(1, size(X)[2], size(X)[2])))[1:6000]
-        X = X[:, random_idxs]
+        X = X[:, random_idxs]'
         labels = labels[random_idxs]
 	plotname = "mnist"
 	initial_dims = 50
