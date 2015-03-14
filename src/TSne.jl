@@ -130,6 +130,24 @@ function cost!(P, Q, n)
   sum(Q)
 end
 
+function update!(Y, dY, iY, gains, momentum, min_gain, eta, n, no_dims)
+  mean_Y = zeros(no_dims)
+  for d = 1:no_dims, row = 1:n
+    gains[row, d] = (gains[row, d] + 0.2) * ((dY[row, d] .> 0) != (iY[row, d] > 0)) +
+                    (gains[row, d] * 0.8) * ((dY[row, d] .> 0) == (iY[row, d] > 0))
+    gains[row, d] = gains[row, d] < min_gain ? min_gain : gains[row, d]
+    iY[row, d] = momentum * iY[row, d] - eta * (gains[row, d] * dY[row, d])
+    Y[row, d] = Y[row, d] + iY[row, d]
+    mean_Y[d] += Y[row, d]
+  end
+  for d = 1:no_dims
+    mean_Y[d] /= n
+  end
+  for row = 1:n
+    Y[row, :] = Y[row, :] - mean_Y
+  end
+end
+
 function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 30.0)
 	#Runs t-SNE on the dataset in the NxD array X to reduce its dimensionality to no_dims dimensions.
 	# Diffrent from orginal, default is to not use PCA
@@ -171,11 +189,7 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 		else
 			momentum = final_momentum
 		end
-		gains = (gains + 0.2) .* ((dY .> 0) .!= (iY .> 0)) + (gains * 0.8) .* ((dY .> 0) .== (iY .> 0))
-		gains[gains .< min_gain] = min_gain
-		iY = momentum .* iY - eta .* (gains .* dY);
-		Y = Y + iY;
-		Y = Y - repmat(mean(Y, 1), n, 1);
+                update!(Y, dY, iY, gains, momentum, min_gain, eta, n, no_dims)
 
 		# Compute current value of cost function
 		if mod((iter + 1), 10) == 0
