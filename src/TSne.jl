@@ -14,11 +14,11 @@ using Distances
 
 function Hbeta(D, beta = 1.0)
 	#Compute the perplexity and the P-row for a specific value of the precision of a Gaussian distribution.
-	P = exp(-copy(D) * beta);
-	sumP = sum(P);
-	H = log(sumP) + beta * sum(D .* P) / sumP;
-	P = P / sumP;
-	return (H, P);
+	P = exp(-copy(D) * beta)
+	sumP = sum(P)
+	H = log(sumP) + beta * sum(D .* P) / sumP
+	P = P / sumP
+	return (H, P)
 end
 
 function x2p(X, tol = 1e-5, perplexity = 30.0)
@@ -41,30 +41,30 @@ function x2p(X, tol = 1e-5, perplexity = 30.0)
         	end
 
 		# Compute the Gaussian kernel and entropy for the current precision
-		betamin = -Inf;
-		betamax =  Inf;
+		betamin = -Inf
+		betamax =  Inf
 
 		inds = range[range .!=i]
 		Di = D[i, inds]
 		(H, thisP) = Hbeta(Di, beta[i])
 
 		# Evaluate whether the perplexity is within tolerance
-		Hdiff = H - logU;
-		tries = 0;
+		Hdiff = H - logU
+		tries = 0
 		while abs(Hdiff) > tol && tries < 50
 
 			# If not, increase or decrease precision
 			if Hdiff > 0
 				betamin = beta[i]
 				if betamax == Inf || betamax == -Inf
-					beta[i] = beta[i] * 2;
+					beta[i] = beta[i] * 2
 				else
 					beta[i] = (beta[i] + betamax) / 2
 				end
 			else
-				betamax = beta[i];
+				betamax = beta[i]
 				if betamin == Inf || betamin == -Inf
-					beta[i] = beta[i] / 2;
+					beta[i] = beta[i] / 2
 				else
 					beta[i] = (beta[i] + betamin) / 2
 				end
@@ -73,7 +73,7 @@ function x2p(X, tol = 1e-5, perplexity = 30.0)
 			# Recompute the values
 			(H, thisP) = Hbeta(Di, beta[i])
 			Hdiff = H - logU
-			tries = tries + 1;
+			tries = tries + 1
 		end
 		# Set the final row of P
   		P[i, inds] = thisP
@@ -107,7 +107,7 @@ function grad!(dY, Y, P, n, no_dims, Q)
   sum_Q = 0.0
   for col = 1:n, row = 1:n
     if col != row
-      Q[row, col] = 1 / (1 + Q[row, col]);
+      Q[row, col] = 1 / (1 + Q[row, col])
       sum_Q += Q[row, col]
     end
   end
@@ -161,7 +161,7 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
         X = X .- mean(X)
         # scale
         X = X / std(X)
-	(n, d) = size(X);
+	(n, d) = size(X)
 	initial_momentum = 0.5
 	final_momentum = 0.8
 	eta = 500
@@ -173,11 +173,11 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
         Q = zeros(n, n)
 
 	# Compute P-values
-	P = x2p(X, 1e-5, perplexity);
+	P = x2p(X, 1e-5, perplexity)
 	P = P + P'
-	P = P / sum(P);
-	P = P * 12;						# early exaggeration
-	P = max(P, 1e-12);
+	P = P / sum(P)
+	P = P * 12						# early exaggeration
+	P = max(P, 1e-12)
 	
 	# Run iterations
 	for iter in 1:max_iter
@@ -197,11 +197,11 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 		end
 		# Stop lying about P-values
 		if iter == 250
-			P = P / 12;
+			P = P / 12
 		end
     	end
 	# Return solution
-	return Y;
+	return Y
 	end
 
 end
