@@ -100,9 +100,7 @@ function pca(X, no_dims = 50)
 end
 
 function grad!(dY, Y, P, n, no_dims, Q)
-  for d = 1:no_dims, row = 1:n
-    dY[row, d] = 0.0
-  end
+  fill!(dY, 0.0)
   pairwise!(Q, SqEuclidean(), Y')
   sum_Q = 0.0
   for col = 1:n, row = 1:n
