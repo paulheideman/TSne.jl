@@ -143,8 +143,8 @@ function update!(Y, dY, iY, gains, momentum, min_gain, eta, n, no_dims)
   for d = 1:no_dims
     mean_Y[d] /= n
   end
-  for row = 1:n
-    Y[row, :] = Y[row, :] - mean_Y
+  for d= 1:no_dims, row = 1:n
+    Y[row, d] = Y[row, d] - mean_Y[d]
   end
 end
 
