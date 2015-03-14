@@ -5,7 +5,7 @@ Julia port of L.J.P. van der Maaten and G.E. Hintons T-SNE visualisation techniq
 
 Please observe, that it is not extensively tested. 
 
-The examples in the 'examples' dir requires you to have Gadfly and RDatasets installed
+The examples in the 'examples' dir requires you to have Gadfly, MNIST and RDatasets installed
 
 **Please note:** At some point something changed in Julia which caused poor results, it took a while before I noted this but now  I have updated the implementation so that it works again. See the link below for images rendered using this implementation.
 
@@ -36,3 +36,5 @@ Basic usage:
 `theplot = plot(x=Y[:,1], y=Y[:,2], color=labels)`
 
 `draw(PDF("myplot.pdf", 4inch, 3inch), theplot)`
+
+Or see the examples.
