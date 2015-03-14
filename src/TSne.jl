@@ -10,6 +10,8 @@ module TSne
 
 export tsne, pca
 
+using Distances
+
 function Hbeta(D, beta = 1.0)
 	#Compute the perplexity and the P-row for a specific value of the precision of a Gaussian distribution.
 	P = exp(-copy(D) * beta);
@@ -97,22 +99,35 @@ function pca(X, no_dims = 50)
 	return Y
 end
 
-function grad(dY, Y, P, n, no_dims)
-  # Compute pairwise affinities
-  sum_Y = sum(Y.^2, 2)
-  num = 1 ./ (1 + ((-2 * (Y * Y')) .+ sum_Y)' .+ sum_Y)
-  # Setting diagonal to zero
-  num = num-diagm(diag(num))
-  Q = num / sum(num)
-  Q = max(Q, 1e-12)
-
-  # Compute gradient
-  PQ = P - Q
-
-  for i in 1:n
-    dY[i,:] = sum(repmat(PQ[:,i] .* num[:,i], 1, no_dims) .* (Y[i,:] .- Y),1)
+function grad!(dY, Y, P, n, no_dims, Q)
+  for d = 1:no_dims, row = 1:n
+    dY[row, d] = 0.0
   end
-  Q
+  pairwise!(Q, SqEuclidean(), Y')
+  sum_Q = 0.0
+  for col = 1:n, row = 1:n
+    if col != row
+      Q[row, col] = 1 / (1 + Q[row, col]);
+      sum_Q += Q[row, col]
+    end
+  end
+  for col = 1:n, row = 1:n
+    mult = (P[row, col] - (Q[row, col] / sum_Q)) * Q[row, col]
+    for d = 1:no_dims
+      dY[col, d] += (Y[col, d] - Y[row, d]) * mult
+    end
+  end
+end
+
+function cost!(P, Q, n)
+  # destroys Q
+  sum_Q = sum(Q)
+  removeNA = (x) -> isnan(x) ? 0.0 : x
+  for col = 1:n, row = 1:n
+    v = P[row, col] * log(P[row, col] / max(Q[row, col] /  sum_Q, 1e-12))
+    Q[row, col] = removeNA(v)
+  end
+  sum(Q)
 end
 
 function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 30.0)
@@ -137,6 +152,7 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 	dY = zeros(n, no_dims)
 	iY = zeros(n, no_dims)
 	gains = ones(n, no_dims)
+        Q = zeros(n, n)
 
 	# Compute P-values
 	P = x2p(X, 1e-5, perplexity);
@@ -147,7 +163,7 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 	
 	# Run iterations
 	for iter in 1:max_iter
-                Q = grad(dY, Y, P, n, no_dims)
+                grad!(dY, Y, P, n, no_dims, Q)
 
 		# Perform the update
 		if iter <= 250
@@ -163,11 +179,7 @@ function tsne(X, no_dims = 2, initial_dims = -1, max_iter = 1000, perplexity = 3
 
 		# Compute current value of cost function
 		if mod((iter + 1), 10) == 0
-			logs = log(P ./ Q)
-			# Below is a fix so we don't get NaN when the error is computed
-			logs = map((x) -> isnan(x) ? 0.0 : x, logs)
-			C = sum(P .* logs);
-			println("Iteration ", (iter + 1), ": error is ", C)
+			println("Iteration ", (iter + 1), ": error is ", cost!(P, Q, n))
 		end
 		# Stop lying about P-values
 		if iter == 250
